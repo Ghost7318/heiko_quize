@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平行調スピードマスター</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .quiz-container {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            padding: 30px;
+            width: 100%;
+            max-width: 550px;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 22px;
+            text-align: center;
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #9b59b6;
+            padding-bottom: 10px;
+        }
+        .question-box {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            font-size: 19px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            border: 1px solid #e2e8f0;
+        }
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        button.option-btn {
+            background-color: #fff;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 14px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+        button.option-btn:hover {
+            background-color: #9b59b6;
+            color: #fff;
+            border-color: #9b59b6;
+        }
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        .correct {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .incorrect {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .explanation {
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: normal;
+            color: #475569;
+            text-align: left;
+            line-height: 1.5;
+            background: #fff;
+            padding: 12px;
+            border-radius: 5px;
+            border-left: 4px solid #9b59b6;
+        }
+        button#next-btn {
+            display: none;
+            width: 100%;
+            background-color: #34495e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button#next-btn:hover {
+            background-color: #2c3e50;
+        }
+        .score-board {
+            text-align: right;
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div class="score-board">正解数: <span id="score">0</span> / <span id="total">0</span></div>
+    <h1>平行調一問一答マスター</h1>
+    
+    <div id="question" class="question-box">問題がここに表示されます</div>
+    
+    <div id="options" class="options-container">
+        </div>
+    
+    <div id="result" class="result-box">
+        <div id="result-text"></div>
+        <div id="explanation-text" class="explanation"></div>
+    </div>
+    
+    <button id="next-btn" onclick="generateQuestion()">次の問題へ</button>
+</div>
+
+<script>
+    // 全音階の平行調データ（日本音名＆ドイツ音名）
+    const keyData = [
+        { majorJa: "ハ長調", majorDe: "C-Dur", minorJa: "イ短調", minorDe: "a-moll", accidentals: "なし" },
+        { majorJa: "ト長調", majorDe: "G-Dur", minorJa: "ホ短調", minorDe: "e-moll", accidentals: "シャープ 1個" },
+        { majorJa: "ニ長調", majorDe: "D-Dur", minorJa: "ロ短調", minorDe: "h-moll", accidentals: "シャープ 2個" },
+        { majorJa: "イ長調", majorDe: "A-Dur", minorJa: "嬰ヘ短調", minorDe: "fis-moll", accidentals: "シャープ 3個" },
+        { majorJa: "ホ長調", majorDe: "E-Dur", minorJa: "嬰ハ短調", minorDe: "cis-moll", accidentals: "シャープ 4個" },
+        { majorJa: "ロ長調", majorDe: "H-Dur", minorJa: "嬰ト短調", minorDe: "gis-moll", accidentals: "シャープ 5個" },
+        { majorJa: "嬰ヘ長調", majorDe: "Fis-Dur", minorJa: "嬰ニ短調", minorDe: "dis-moll", accidentals: "シャープ 6個" },
+        { majorJa: "嬰ハ長調", majorDe: "Cis-Dur", minorJa: "嬰イ短調", minorDe: "ais-moll", accidentals: "シャープ 7個" },
+        { majorJa: "ヘ長調", majorDe: "F-Dur", minorJa: "ニ短調", minorDe: "d-moll", accidentals: "フラット 1個" },
+        { majorJa: "変ロ長調", majorDe: "B-Dur", minorJa: "ト短調", minorDe: "g-moll", accidentals: "フラット 2個" },
+        { majorJa: "変ホ長調", majorDe: "Es-Dur", minorJa: "ハ短調", minorDe: "c-moll", accidentals: "フラット 3個" },
+        { majorJa: "変イ長調", majorDe: "As-Dur", minorJa: "ヘ短調", minorDe: "f-moll", accidentals: "フラット 4個" },
+        { majorJa: "変ニ長調", majorDe: "Des-Dur", minorJa: "変ロ短調", minorDe: "b-moll", accidentals: "フラット 5個" },
+        { majorJa: "変ト長調", majorDe: "Ges-Dur", minorJa: "変ホ短調", minorDe: "es-moll", accidentals: "フラット 6個" },
+        { majorJa: "変ハ長調", majorDe: "Ces-Dur", minorJa: "変イ短調", minorDe: "as-moll", accidentals: "フラット 7個" }
+    ];
+
+    let currentCorrectAnswer = "";
+    let currentExplanation = "";
+    let score = 0;
+    let total = 0;
+
+    function getRandomElement(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function shuffle(array) {
+        return array.sort(() => Math.random() - 0.5);
+    }
+
+    function fmtMajor(key) { return `${key.majorJa}（${key.majorDe}）`; }
+    function fmtMinor(key) { return `${key.minorJa}（${key.minorDe}）`; }
+
+    function generateQuestion() {
+        document.getElementById("result").style.display = "none";
+        document.getElementById("next-btn").style.display = "none";
+        
+        // 0: 長調から短調を当てる, 1: 短調から長調を当てる
+        const isMajorToMinor = Math.random() < 0.5;
+        const currentKey = getRandomElement(keyData);
+        
+        let questionText = "";
+        let options = [];
+        
+        if (isMajorToMinor) {
+            // 長調問 → 短調答
+            questionText = `「${fmtMajor(currentKey)}」の平行調は何ですか？`;
+            currentCorrectAnswer = fmtMinor(currentKey);
+            currentExplanation = `正解は「${fmtMinor(currentKey)}」です。\nどちらも調号は【${currentKey.accidentals}】です。`;
+            
+            options.push(currentCorrectAnswer);
+            while(options.length < 4) {
+                let wrong = fmtMinor(getRandomElement(keyData));
+                if(!options.includes(wrong)) options.push(wrong);
+            }
+        } else {
+            // 短調問 → 長調答
+            questionText = `「${fmtMinor(currentKey)}」の平行調は何ですか？`;
+            currentCorrectAnswer = fmtMajor(currentKey);
+            currentExplanation = `正解は「${fmtMajor(currentKey)}」です。\nどちらも調号は【${currentKey.accidentals}】です。`;
+            
+            options.push(currentCorrectAnswer);
+            while(options.length < 4) {
+                let wrong = fmtMajor(getRandomElement(keyData));
+                if(!options.includes(wrong)) options.push(wrong);
+            }
+        }
+
+        shuffle(options);
+
+        document.getElementById("question").innerText = questionText;
+        const optionsContainer = document.getElementById("options");
+        optionsContainer.innerHTML = "";
+
+        options.forEach(opt => {
+            const btn = document.createElement("button");
+            btn.className = "option-btn";
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt, btn);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, selectedBtn) {
+        const buttons = document.querySelectorAll(".option-btn");
+        buttons.forEach(btn => btn.disabled = true);
+
+        const resultBox = document.getElementById("result");
+        const resultText = document.getElementById("result-text");
+        const explanationText = document.getElementById("explanation-text");
+
+        total++;
+        document.getElementById("total").innerText = total;
+
+        if (selected === currentCorrectAnswer) {
+            score++;
+            document.getElementById("score").innerText = score;
+            resultBox.className = "result-box correct";
+            resultText.innerText = "⭕ 正解！";
+            selectedBtn.style.backgroundColor = "#10b981";
+            selectedBtn.style.color = "#fff";
+            selectedBtn.style.borderColor = "#10b981";
+        } else {
+            resultBox.className = "result-box incorrect";
+            resultText.innerText = "❌ 不正解...";
+            selectedBtn.style.backgroundColor = "#ef4444";
+            selectedBtn.style.color = "#fff";
+            selectedBtn.style.borderColor = "#ef4444";
+            
+            buttons.forEach(btn => {
+                if(btn.innerText === currentCorrectAnswer) {
+                    btn.style.borderColor = "#10b981";
+                    btn.style.borderWidth = "3px";
+                }
+            });
+        }
+
+        // 改行を反映させるために innerText を使用
+        explanationText.innerText = currentExplanation;
+        resultBox.style.display = "block";
+        document.getElementById("next-btn").style.display = "block";
+    }
+
+    // クイズ開始
+    generateQuestion();
+</script>
+
+</body>
+</html>
